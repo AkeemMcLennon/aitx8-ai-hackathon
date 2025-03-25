@@ -1,13 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-/* config options here */
+  /* config options here */
 };
 
-// Replace the require with dynamic import
-(async () => {
-  const { initOpenNextCloudflareForDev } = await import('@opennextjs/cloudflare');
-  initOpenNextCloudflareForDev();
-})().catch(console.error);
-
-module.exports = nextConfig;
+module.exports = nextConfig; 
