@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { PosterAsset } from '@/types';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function EditorContent() {
   const router = useRouter();
@@ -78,13 +79,16 @@ export default function EditorContent() {
       
       <main className="page-container py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tighter mb-2">
-              Customize Your Poster
-            </h1>
-            <p className="text-gray-600">
-              Add text and shapes to make your poster unique.
-            </p>
+          <div className="flex items-center gap-4 mb-8">
+            <BackButton href="/create/background" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tighter mb-2">
+                Customize Your Poster
+              </h1>
+              <p className="text-gray-600">
+                Add text and shapes to make your poster unique.
+              </p>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-8">

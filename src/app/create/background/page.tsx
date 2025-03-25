@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import { usePoster } from '@/components/PosterContext';
 import PosterPreview from '@/components/PosterPreview';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function BackgroundSelectionPage() {
   const router = useRouter();
@@ -27,13 +28,16 @@ export default function BackgroundSelectionPage() {
       
       <main className="page-container py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tighter mb-2">
-              Choose a Background
-            </h1>
-            <p className="text-gray-600">
-              Select a background image for your event poster.
-            </p>
+          <div className="flex items-center gap-4 mb-8">
+            <BackButton href="/create" />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tighter mb-2">
+                Choose a Background
+              </h1>
+              <p className="text-gray-600">
+                Select a background image for your event poster.
+              </p>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-8">
