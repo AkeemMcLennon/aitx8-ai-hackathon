@@ -10,6 +10,15 @@ interface PosterPreviewProps {
   background?: BackgroundOption;
   editable?: boolean;
   className?: string;
+  customCSS?: {
+    containerStyles: Record<string, string>;
+    backgroundStyles: Record<string, string>;
+    glassContainerStyles: Record<string, string>;
+    assetStyles: Array<{
+      selector: string;
+      styles: Record<string, string>;
+    }>;
+  };
 }
 
 export default function PosterPreview({
@@ -17,6 +26,7 @@ export default function PosterPreview({
   background,
   editable = false,
   className = '',
+  customCSS,
 }: PosterPreviewProps) {
   const [loading, setLoading] = useState(true);
   const { updateAsset } = usePoster();
@@ -52,12 +62,21 @@ export default function PosterPreview({
   const bottomAssets = data.assets.slice(2);
 
   return (
-    <div className={`aspect-[3/4] relative rounded-lg overflow-hidden ${className}`}>
+    <div 
+      className={`aspect-[3/4] relative rounded-lg overflow-hidden ${className}`}
+      style={{
+        ...customCSS?.containerStyles,
+        width: '100%',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}
+    >
       {background ? (
         <img
           src={background.url}
           alt={background.name}
           className="absolute inset-0 w-full h-full object-cover"
+          style={customCSS?.backgroundStyles}
         />
       ) : (
         <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
@@ -66,10 +85,21 @@ export default function PosterPreview({
       )}
 
       {/* Top Info Container with Glass Effect */}
-      <div className="absolute top-0 left-0 right-0 p-8 bg-black/30 backdrop-blur-md border-b border-white/10">
+      <div 
+        className="absolute top-0 left-0 right-0 p-8 backdrop-blur-md"
+        style={{
+          ...customCSS?.glassContainerStyles,
+          background: customCSS?.glassContainerStyles?.background || 'rgba(0, 0, 0, 0.3)',
+          border: customCSS?.glassContainerStyles?.border || '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
         <div className="max-w-4xl mx-auto">
-          {topAssets.map((asset) => {
+          {topAssets.map((asset, index) => {
             if (asset.type === 'text') {
+              const assetStyles = customCSS?.assetStyles.find(
+                style => style.selector === `.asset-text-${index + 1}`
+              )?.styles;
+              
               return (
                 <motion.div
                   key={asset.id}
@@ -86,13 +116,20 @@ export default function PosterPreview({
                   }}
                   className="relative"
                 >
-                  <div
-                    style={{ color: asset.color }}
-                    className={`whitespace-pre-wrap break-words ${
-                      asset.content === data.assets[0]?.content
-                        ? 'text-[min(5vw,3rem)] font-bold mb-2' // Title
-                        : 'text-[min(3vw,1.5rem)] font-medium' // Date and Time
-                    }`}
+                  <div 
+                    className="whitespace-pre-wrap break-words"
+                    style={{
+                      color: asset.color || '#ffffff',
+                      ...(asset.content === data.assets[0]?.content
+                        ? { fontSize: 'min(5vw, 3rem)', fontWeight: 'bold', marginBottom: '0.5rem' }
+                        : asset.content === data.assets[1]?.content
+                        ? { fontSize: 'min(3vw, 1.5rem)', fontWeight: '500' }
+                        : asset.content === data.assets[2]?.content
+                        ? { fontSize: 'min(2.5vw, 1.25rem)', fontWeight: '600', marginBottom: '0.5rem' }
+                        : { fontSize: 'min(2vw, 1rem)', lineHeight: '1.75' }
+                      ),
+                      ...assetStyles
+                    }}
                   >
                     {asset.content}
                   </div>
@@ -105,10 +142,17 @@ export default function PosterPreview({
       </div>
 
       {/* Bottom Info Container with Glass Effect */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 bg-black/30 backdrop-blur-md border-t border-white/10">
+      <div 
+        className="absolute bottom-0 left-0 right-0 p-8 backdrop-blur-md"
+        style={customCSS?.glassContainerStyles}
+      >
         <div className="max-w-4xl mx-auto">
-          {bottomAssets.map((asset) => {
+          {bottomAssets.map((asset, index) => {
             if (asset.type === 'text') {
+              const assetStyles = customCSS?.assetStyles.find(
+                style => style.selector === `.asset-text-${index + 3}`
+              )?.styles;
+              
               return (
                 <motion.div
                   key={asset.id}
@@ -125,13 +169,20 @@ export default function PosterPreview({
                   }}
                   className="relative"
                 >
-                  <div
-                    style={{ color: asset.color }}
-                    className={`whitespace-pre-wrap break-words ${
-                      asset.content === data.assets[2]?.content
-                        ? 'text-[min(2.5vw,1.25rem)] font-semibold mb-2' // Location
-                        : 'text-[min(2vw,1rem)] leading-relaxed' // Description
-                    }`}
+                  <div 
+                    className="whitespace-pre-wrap break-words"
+                    style={{
+                      color: asset.color || '#ffffff',
+                      ...(asset.content === data.assets[0]?.content
+                        ? { fontSize: 'min(5vw, 3rem)', fontWeight: 'bold', marginBottom: '0.5rem' }
+                        : asset.content === data.assets[1]?.content
+                        ? { fontSize: 'min(3vw, 1.5rem)', fontWeight: '500' }
+                        : asset.content === data.assets[2]?.content
+                        ? { fontSize: 'min(2.5vw, 1.25rem)', fontWeight: '600', marginBottom: '0.5rem' }
+                        : { fontSize: 'min(2vw, 1rem)', lineHeight: '1.75' }
+                      ),
+                      ...assetStyles
+                    }}
                   >
                     {asset.content}
                   </div>
