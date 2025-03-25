@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { usePoster } from './PosterContext';
@@ -17,6 +17,12 @@ export default function EditorContent() {
   const router = useRouter();
   const { poster, addAsset, updateAsset, removeAsset } = usePoster();
   
+  useEffect(() => {
+    if (!poster.background) {
+      router.push('/create/background');
+    }
+  }, [poster.background, router]);
+
   const [newAsset, setNewAsset] = useState({
     type: 'text' as const,
     content: '',
@@ -121,7 +127,6 @@ export default function EditorContent() {
   };
 
   if (!poster.background) {
-    router.push('/create/background');
     return null;
   }
 

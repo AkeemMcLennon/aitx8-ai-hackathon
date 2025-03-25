@@ -50,8 +50,7 @@ interface PosterContextType {
 
 const defaultEventDetails: EventDetails = {
   title: '',
-  date: '',
-  time: '',
+  dateTime: '',
   location: '',
   description: '',
 };
@@ -64,6 +63,20 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
     assets: [],
   });
 
+  const formatDateTime = (dateTimeStr: string) => {
+    if (!dateTimeStr) return '';
+    const date = new Date(dateTimeStr);
+    return date.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+
   const updateEventDetails = (details: EventDetails) => {
     setEventDetails(details);
 
@@ -72,41 +85,41 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
       {
         type: 'text',
         content: details.title,
-        color: '#000000',
-        x: 50,
-        y: 50,
-        width: 500,
-        height: 60,
+        color: '#ffffff',
+        x: 0,
+        y: 0,
+        width: 700,
+        height: 80,
         rotation: 0,
       },
       {
         type: 'text',
-        content: `${details.date} at ${details.time}`,
-        color: '#666666',
-        x: 50,
-        y: 120,
-        width: 300,
+        content: formatDateTime(details.dateTime),
+        color: '#ffffff',
+        x: 0,
+        y: 0,
+        width: 400,
         height: 40,
         rotation: 0,
       },
       {
         type: 'text',
         content: details.location,
-        color: '#666666',
-        x: 50,
-        y: 170,
-        width: 300,
+        color: '#ffffff',
+        x: 0,
+        y: 0,
+        width: 400,
         height: 40,
         rotation: 0,
       },
       {
         type: 'text',
         content: details.description,
-        color: '#444444',
-        x: 50,
-        y: 220,
-        width: 500,
-        height: 100,
+        color: '#ffffff',
+        x: 0,
+        y: 0,
+        width: 600,
+        height: 120,
         rotation: 0,
       },
     ];

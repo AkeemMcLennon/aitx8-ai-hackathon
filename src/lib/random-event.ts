@@ -46,21 +46,23 @@ function getRandomElement<T>(array: T[]): T {
 function getRandomFutureDate(): Date {
   const now = new Date();
   const futureDate = new Date(now);
-  // Random date between 1 month and 6 months from now
-  futureDate.setDate(now.getDate() + Math.floor(Math.random() * 150) + 30);
+  
+  // Add random days (between 7 and 180 days from now)
+  futureDate.setDate(now.getDate() + Math.floor(Math.random() * 173) + 7);
+  
+  // Set random hour (between 9 AM and 9 PM)
+  futureDate.setHours(Math.floor(Math.random() * 12) + 9, 0, 0);
+  
   return futureDate;
-}
-
-function formatDateTime(date: Date): string {
-  return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
 }
 
 function generateDescription(eventType: string, location: string): string {
   const descriptions = [
-    `Join us for an unforgettable ${eventType.toLowerCase()} experience at ${location}. Network with industry leaders, gain valuable insights, and be part of something extraordinary.`,
-    `Don't miss this exciting ${eventType.toLowerCase()} happening at ${location}. Connect with like-minded individuals and create lasting memories.`,
-    `Experience the magic of our ${eventType.toLowerCase()} at the stunning ${location}. Immerse yourself in a world of creativity and innovation.`,
+    `Join us for an unforgettable ${eventType.toLowerCase()} experience at ${location}. Network with industry leaders, gain valuable insights, and be part of this transformative event.`,
+    `Experience the magic of ${eventType.toLowerCase()} like never before at ${location}. This event promises to deliver an exceptional blend of innovation and entertainment.`,
+    `Don't miss this extraordinary ${eventType.toLowerCase()} at the prestigious ${location}. Connect with fellow enthusiasts and immerse yourself in an atmosphere of creativity and excellence.`,
   ];
+  
   return getRandomElement(descriptions);
 }
 
@@ -74,7 +76,7 @@ export function generateRandomEvent(): EventDetails {
   return {
     title: `${descriptiveWord} ${eventType} ${year}`,
     location: location,
-    dateTime: formatDateTime(date),
+    dateTime: date.toISOString().slice(0, 16), // Format as YYYY-MM-DDTHH:mm
     description: generateDescription(eventType, location),
   };
 } 
