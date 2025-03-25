@@ -8,7 +8,13 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
 
 const schema = z.object({
-  prompts: z.array(z.string()),
+  prompts: z.array(
+    z.object({
+      theme: z.string(),
+      visuals: z.string(),
+      textLayout: z.string(),
+    })
+  ),
 });
 
 // Helper function to generate a prompt using OpenAI
@@ -24,7 +30,7 @@ async function generateReplicatePromptFromOpenAI(
       {
         role: "system",
         content:
-          "Generate a list highly detailed image prompts for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image. Return as a json array. Do not include code fences",
+          "Generate a list highly detailed image prompts for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image. Do not include text in the prompt.",
       },
       {
         role: "user",
@@ -33,7 +39,9 @@ async function generateReplicatePromptFromOpenAI(
         - Description: ${description}
         - Location: ${location}
         - Time: ${time}
-        Ensure the description is visually rich and structured for an AI model to generate an engaging, high-quality image.`,
+        Ensure the description is visually rich and structured for an AI model to generate an engaging, high-quality image.
+        
+        `,
       },
     ],
     response_format: zodResponseFormat(schema, "prompts"),
@@ -82,10 +90,10 @@ export async function POST(req: Request) {
     const prompts = data.prompts;
 
     const replicateResponses = await Promise.all(
-      prompts.map(async (prompt: string) => {
+      prompts.map(async (prompt: typeof data.prompts[0]) => {
         return await replicate.run("black-forest-labs/flux-schnell", {
           input: {
-            prompt: prompt,
+            prompt: `No text unless explicitly stated. ${prompt.theme} ${prompt.visuals}`,
             num_outputs: 3, // Generate 4 images
           },
         });
