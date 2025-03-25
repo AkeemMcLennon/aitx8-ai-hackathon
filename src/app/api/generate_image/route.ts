@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 import Replicate from 'replicate';
 
@@ -6,7 +6,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
 
 // Helper function to generate a prompt using OpenAI
-async function generateOpenAIPrompt(
+async function generateReplicatePromptFromOpenAI(
 	title: string,
 	description: string,
 	location: string,
@@ -18,11 +18,11 @@ async function generateOpenAIPrompt(
 			{
 				role: 'system',
 				content:
-					'Generate a highly detailed image prompt for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image.',
+					'Generate a list highly detailed image prompts for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image. Return as a json array. Do not include code fences',
 			},
 			{
 				role: 'user',
-				content: `Generate an AI image prompt for a promotional poster for an event with these details:
+				content: `Generate 5 AI image prompt for a promotional poster for an event with these details:
         - Title: ${title}
         - Description: ${description}
         - Location: ${location}
@@ -32,65 +32,77 @@ async function generateOpenAIPrompt(
 		],
 	});
 
-	return openaiResponse.choices.map((choice) => choice.message?.content);
+	return openaiResponse;
 }
 
-// Helper function to send the structured prompt to Replicate
-async function generateImagesFromReplicate(prompts: string[]) {
-	const replicateResponses = await Promise.all(
-		prompts.map(async (prompt) => {
-			return await replicate.run('black-forest-labs/flux-schnell', {
-				input: {
-					prompt: prompt,
-					num_outputs: 4, // Generate 4 images
-				},
-			});
-		})
-	);
-
-	// Flatten the array of responses and extract image URLs
-	return replicateResponses.flat().map((response) => response.url().href);
-}
-
-export default async function handler(
-	req: NextApiRequest,
-	res: NextApiResponse
-) {
-	if (req.method === 'POST') {
-		const { title, description, location, time } = req.body;
+export async function POST(req: Request) {
+	try {
+		const { title, description, location, time } = await req.json();
 
 		if (!title || !description || !location || !time) {
-			return res.status(400).json({ error: 'Missing required event details' });
+			return NextResponse.json(
+				{ error: 'Missing required event details' },
+				{ status: 400 }
+			);
 		}
 
-		try {
-			// Call the helper function to generate the prompts
-			const structuredPrompts = await generateOpenAIPrompt(
-				title,
-				description,
-				location,
-				time
+		// Generate AI prompt using OpenAI
+		const structuredPrompt = await generateReplicatePromptFromOpenAI(
+			title,
+			description,
+			location,
+			time
+		);
+
+		const data = JSON.parse(structuredPrompt.choices[0].message.content);
+		console.log('data', JSON.parse(data));
+		console.log('response from openAI', structuredPrompt);
+		const prompts = data.map((item) => item.prompt);
+
+		if (!structuredPrompt) {
+			return NextResponse.json(
+				{ error: 'Failed to generate AI prompt' },
+				{ status: 500 }
 			);
-
-			if (!structuredPrompts.length) {
-				return res.status(500).json({ error: 'Failed to generate AI prompts' });
-			}
-
-			// Filter out null values from structuredPrompts
-			const validPrompts = structuredPrompts.filter(
-				(prompt): prompt is string => prompt !== null
-			);
-
-			// Call the helper function to generate images from Replicate
-			const imageUrls = await generateImagesFromReplicate(validPrompts);
-
-			return res.status(200).json({ imageUrls });
-		} catch (error) {
-			console.error('Error:', error);
-			return res.status(500).json({ error: 'Internal Server Error' });
 		}
-	} else {
-		res.setHeader('Allow', ['POST']);
-		return res.status(405).end(`Method ${req.method} Not Allowed`);
+
+		const replicateResponses = await Promise.all(
+			prompts.map(async (prompt) => {
+				return await replicate.run('black-forest-labs/flux-schnell', {
+					input: {
+						prompt: prompt,
+						num_outputs: 4, // Generate 4 images
+					},
+				});
+			})
+		);
+
+		let output = [];
+
+		replicateResponses.forEach((response: any[]) => {
+			output = [...output, response.map((item) => item.url().href)];
+		});
+
+		// // Send the structured prompt to Replicate
+		// const replicateResponse = (await replicate.run(
+		// 	'black-forest-labs/flux-schnell',
+		// 	{
+		// 		input: {
+		// 			prompt: structuredPrompt,
+		// 			num_outputs: 4, // Generate 4 images
+		// 		},
+		// 	}
+		// )) as any[];
+
+		// const imageUrl = replicateResponse.map((item) => item.url().href);
+		return NextResponse.json({
+			imageUrl: output,
+		});
+	} catch (error) {
+		console.error('Error:', error);
+		return NextResponse.json(
+			{ error: 'Internal Server Error' },
+			{ status: 500 }
+		);
 	}
 }
