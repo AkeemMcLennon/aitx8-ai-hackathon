@@ -1,55 +1,107 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
-import { usePoster } from '@/components/PosterContext';
+import { usePoster } from './PosterContext';
 import PosterPreview from '@/components/PosterPreview';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { toast } from './ui/use-toast';
 import { PosterAsset } from '@/types';
 import { BackButton } from '@/components/ui/back-button';
+import { LogoUploader } from './ui/logo-uploader';
 
 export default function EditorContent() {
   const router = useRouter();
-  const { posterData, getSelectedBackground, addAsset, updateAsset, removeAsset } = usePoster();
-  const selectedBackground = getSelectedBackground();
-  const { toast } = useToast();
+  const { poster, addAsset, updateAsset, removeAsset } = usePoster();
   
-  const [newAsset, setNewAsset] = useState<Omit<PosterAsset, 'id'>>({
-    type: 'text',
+  const [newAsset, setNewAsset] = useState({
+    type: 'text' as const,
     content: '',
+    color: '#000000',
     x: 50,
     y: 50,
     width: 200,
-    height: 40,
+    height: 50,
     rotation: 0,
-    color: '#ffffff',
   });
 
   const handleAddAsset = () => {
-    if (newAsset.type === 'text' && !newAsset.content) {
+    if (!newAsset.content) {
       toast({
         title: 'Error',
-        description: 'Please enter text content',
+        description: 'Please enter some text content',
         variant: 'destructive',
       });
       return;
     }
-    
+
     addAsset(newAsset);
     setNewAsset({
-      type: 'text',
+      ...newAsset,
       content: '',
-      x: 50,
-      y: 50,
-      width: 200,
-      height: 40,
-      rotation: 0,
-      color: '#ffffff',
     });
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate dimensions while maintaining aspect ratio
+        const maxWidth = 200;
+        const maxHeight = 200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+        
+        if (height > maxHeight) {
+          width = (maxHeight / height) * width;
+          height = maxHeight;
+        }
+
+        addAsset({
+          type: 'logo',
+          content: file.name,
+          url,
+          file,
+          x: 50,
+          y: 50,
+          width,
+          height,
+          rotation: 0,
+        });
+
+        toast({
+          title: 'Success',
+          description: 'Logo uploaded successfully',
+        });
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        toast({
+          title: 'Error',
+          description: 'Failed to load the image',
+          variant: 'destructive',
+        });
+      };
+
+      img.src = url;
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to upload the logo',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleAssetChange = (id: string, updates: Partial<PosterAsset>) => {
@@ -68,7 +120,7 @@ export default function EditorContent() {
     });
   };
 
-  if (!selectedBackground) {
+  if (!poster.background) {
     router.push('/create/background');
     return null;
   }
@@ -95,8 +147,15 @@ export default function EditorContent() {
             {/* Controls Section */}
             <div className="order-2 lg:order-1">
               <div className="sticky top-24 space-y-6">
+                {/* Logo Upload Section */}
                 <div className="bg-white rounded-lg shadow-sm border p-6">
-                  <h2 className="text-lg font-medium mb-4">Add Elements</h2>
+                  <h2 className="text-lg font-medium mb-4">Upload Logo</h2>
+                  <LogoUploader onLogoUpload={handleLogoUpload} />
+                </div>
+
+                {/* Text Controls Section */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <h2 className="text-lg font-medium mb-4">Add Text</h2>
                   
                   <div className="space-y-4">
                     <div>
@@ -125,15 +184,22 @@ export default function EditorContent() {
                   </div>
                 </div>
                 
+                {/* Existing Elements Section */}
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h2 className="text-lg font-medium mb-4">Existing Elements</h2>
                   <div className="space-y-4">
-                    {posterData.assets.map((asset) => (
+                    {poster.assets.map((asset: PosterAsset) => (
                       <div key={asset.id} className="flex items-center gap-4">
-                        <Input
-                          value={asset.content}
-                          onChange={(e) => handleAssetChange(asset.id, { content: e.target.value })}
-                        />
+                        {asset.type === 'text' ? (
+                          <Input
+                            value={asset.content}
+                            onChange={(e) => handleAssetChange(asset.id, { content: e.target.value })}
+                          />
+                        ) : (
+                          <div className="flex-1 truncate text-sm">
+                            {asset.content}
+                          </div>
+                        )}
                         <Button
                           variant="destructive"
                           size="icon"
@@ -161,8 +227,8 @@ export default function EditorContent() {
               <h2 className="text-lg font-medium mb-4">Preview</h2>
               <div className="bg-white rounded-lg shadow-sm border p-4">
                 <PosterPreview
-                  data={posterData}
-                  background={selectedBackground}
+                  data={poster}
+                  background={poster.background}
                   editable
                   className="max-w-2xl mx-auto"
                 />

@@ -1,31 +1,40 @@
 export interface EventDetails {
   title: string;
+  date: string;
+  time: string;
   location: string;
   description: string;
-  dateTime: string;
-}
-
-export interface BackgroundOption {
-  id: string;
-  url: string;
-  name: string;
-  thumbnail: string;
 }
 
 export interface PosterAsset {
   id: string;
-  type: 'text' | 'shape' | 'icon';
-  content?: string;
+  type: 'text' | 'logo';
+  content: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  color?: string;
+  url?: string;
+  file?: File;
+}
+
+export interface BackgroundOption {
+  id: string;
+  name: string;
+  url: string;
+}
+
+export interface PosterData {
+  assets: PosterAsset[];
+  background?: BackgroundOption;
+}
+
+export interface AssetTransform {
   x: number;
   y: number;
   width: number;
   height: number;
   rotation: number;
-  color?: string;
-}
-
-export interface PosterData {
-  eventDetails: EventDetails;
-  backgroundId: string | null;
-  assets: PosterAsset[];
 } 
