@@ -6,7 +6,7 @@ import AnimatedTransition from '@/components/ui/AnimatedTransition';
 
 interface BackgroundGridProps {
   options: BackgroundOption[];
-  selectedId: string | null;
+  selectedId?: string;
   onSelect: (id: string) => void;
   onConfirm: () => void;
 }
@@ -21,7 +21,11 @@ const BackgroundGrid: React.FC<BackgroundGridProps> = ({
   const { toast } = useToast();
 
   const handleImageLoad = (id: string) => {
-    setLoadedImages(prev => new Set(prev).add(id));
+    setLoadedImages(prev => {
+      const newSet = new Set(prev);
+      newSet.add(id);
+      return newSet;
+    });
   };
 
   const handleConfirm = () => {
@@ -40,7 +44,7 @@ const BackgroundGrid: React.FC<BackgroundGridProps> = ({
     <div className="space-y-6 animate-fade-in">
       <h3 className="text-xl font-medium mb-4">Choose a Background</h3>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {options.map((bg) => {
           const isLoaded = loadedImages.has(bg.id);
           const isSelected = bg.id === selectedId;
@@ -60,7 +64,7 @@ const BackgroundGrid: React.FC<BackgroundGridProps> = ({
                 </div>
               )}
               <img
-                src={bg.thumbnail}
+                src={bg.thumbnail || bg.url}
                 alt={bg.name}
                 className={`w-full h-full object-cover transition-opacity duration-500 aspect-[4/3] ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => handleImageLoad(bg.id)}

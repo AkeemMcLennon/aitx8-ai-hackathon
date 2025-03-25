@@ -126,6 +126,15 @@ export default function EditorContent() {
     });
   };
 
+  const handleViewCSS = () => {
+    const state = {
+      assets: poster.assets,
+      background: poster.background
+    };
+    const stateParam = encodeURIComponent(JSON.stringify(state));
+    window.open(`/create/preview?state=${stateParam}`, '_blank');
+  };
+
   if (!poster.background) {
     return null;
   }
@@ -189,6 +198,19 @@ export default function EditorContent() {
                   </div>
                 </div>
                 
+                {/* Actions Section */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <h2 className="text-lg font-medium mb-4">Actions</h2>
+                  <div className="space-y-4">
+                    <Button onClick={handleViewCSS} className="w-full" variant="outline">
+                      View CSS Preview
+                    </Button>
+                    <Button onClick={handleDownload} className="w-full">
+                      Download Poster
+                    </Button>
+                  </div>
+                </div>
+                
                 {/* Existing Elements Section */}
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h2 className="text-lg font-medium mb-4">Existing Elements</h2>
@@ -220,10 +242,6 @@ export default function EditorContent() {
                     ))}
                   </div>
                 </div>
-                
-                <Button onClick={handleDownload} className="w-full">
-                  Download Poster
-                </Button>
               </div>
             </div>
             

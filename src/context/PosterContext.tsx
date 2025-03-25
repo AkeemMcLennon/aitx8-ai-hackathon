@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useState } from 'react';
 import { EventDetails, PosterData, PosterAsset, BackgroundOption } from '../types';
 
@@ -54,14 +56,8 @@ interface PosterContextType {
 }
 
 const defaultPosterData: PosterData = {
-  eventDetails: {
-    title: '',
-    location: '',
-    description: '',
-    dateTime: '',
-  },
-  backgroundId: null,
   assets: [],
+  background: undefined
 };
 
 const PosterContext = createContext<PosterContextType | undefined>(undefined);
@@ -77,9 +73,10 @@ export const PosterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const selectBackground = (backgroundId: string) => {
+    const selectedBackground = backgroundOptions.find(bg => bg.id === backgroundId);
     setPosterData(prev => ({
       ...prev,
-      backgroundId,
+      background: selectedBackground,
     }));
   };
 
@@ -112,8 +109,7 @@ export const PosterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const getSelectedBackground = () => {
-    if (!posterData.backgroundId) return undefined;
-    return backgroundOptions.find(bg => bg.id === posterData.backgroundId);
+    return posterData.background;
   };
 
   const resetPoster = () => {

@@ -1,10 +1,18 @@
 import OpenAI from 'openai';
 import * as fs from 'fs/promises';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+type MessageContent = {
+    type: 'text';
+    text: string;
+} | {
+    type: 'image_url';
+    image_url: {
+        url: string;
+    };
+};
 
 export class OpenAIService {
-    static async compareMultipleImages(imagePaths) {
+    static async compareMultipleImages(imagePaths: string[]): Promise<string | null> {
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
             organization: process.env.OPENAI_ORGANIZATION
@@ -19,23 +27,25 @@ export class OpenAIService {
                 buffer.toString('base64')
             );
 
+            const content: MessageContent[] = [
+                {
+                    type: 'text' as const,
+                    text: 'Compare these two screenshots and describe any visual differences you notice. Focus on changes in colors, shapes, positions, or any other visual elements.'
+                },
+                ...base64Images.map(image => ({
+                    type: 'image_url' as const,
+                    image_url: {
+                        url: `data:image/png;base64,${image}`
+                    }
+                }))
+            ];
+
             const response = await openai.chat.completions.create({
-                model: process.env.VISION_MODEL || 'gpt-4o',
+                model: process.env.VISION_MODEL || 'gpt-4-vision-preview',
                 messages: [
                     {
                         role: 'user',
-                        content: [
-                            {
-                                type: 'text',
-                                text: 'Compare these two screenshots and describe any visual differences you notice. Focus on changes in colors, shapes, positions, or any other visual elements.'
-                            },
-                            ...base64Images.map(image => ({
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:image/png;base64,${image}`
-                                }
-                            }))
-                        ]
+                        content
                     }
                 ],
                 max_tokens: 500
@@ -48,7 +58,7 @@ export class OpenAIService {
         }
     }
 
-    static async describeImage(imagePath) {
+    static async describeImage(imagePath: string): Promise<string> {
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
             organization: process.env.OPENAI_ORGANIZATION
@@ -58,23 +68,25 @@ export class OpenAIService {
             const imageBuffer = await fs.readFile(imagePath);
             const base64Image = imageBuffer.toString('base64');
 
+            const content: MessageContent[] = [
+                {
+                    type: 'text' as const,
+                    text: 'Describe this React component screenshot. Focus on its visual appearance, layout, and any interactive elements you can see. Be concise but detailed.'
+                },
+                {
+                    type: 'image_url' as const,
+                    image_url: {
+                        url: `data:image/png;base64,${base64Image}`
+                    }
+                }
+            ];
+
             const response = await openai.chat.completions.create({
-                model: process.env.VISION_MODEL || 'gpt-4o',
+                model: process.env.VISION_MODEL || 'gpt-4-vision-preview',
                 messages: [
                     {
                         role: 'user',
-                        content: [
-                            {
-                                type: 'text',
-                                text: 'Describe this React component screenshot. Focus on its visual appearance, layout, and any interactive elements you can see. Be concise but detailed.'
-                            },
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:image/png;base64,${base64Image}`
-                                }
-                            }
-                        ]
+                        content
                     }
                 ],
                 max_tokens: 10500

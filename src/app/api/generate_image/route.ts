@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
+import OpenAI from 'openai';
 import Replicate from 'replicate';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
+interface ReplicateOutput {
+	url: string;
+}
 
 // Helper function to generate a prompt using OpenAI
 async function generateOpenAIPrompt(
@@ -12,8 +13,9 @@ async function generateOpenAIPrompt(
 	location: string,
 	time: string
 ) {
-	const openaiResponse = await openai.chat.completions.create({
-		model: 'gpt-4-turbo',
+	const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+	const response = await openai.chat.completions.create({
+		model: 'gpt-4o',
 		messages: [
 			{
 				role: 'system',
@@ -32,15 +34,12 @@ async function generateOpenAIPrompt(
 		],
 	});
 
-	return openaiResponse.choices.map((choice) => choice.message?.content);
-}
-
-interface ReplicateOutput {
-	url: string;
+	return response.choices.map((choice) => choice.message?.content);
 }
 
 // Helper function to send the structured prompt to Replicate
 async function generateImagesFromReplicate(prompts: string[]) {
+	const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
 	const replicateResponses = await Promise.all(
 		prompts.map(async (prompt) => {
 			const response = await replicate.run('black-forest-labs/flux-schnell', {
@@ -100,3 +99,5 @@ export async function POST(req: Request) {
 		);
 	}
 }
+
+export const dynamic = 'force-dynamic';

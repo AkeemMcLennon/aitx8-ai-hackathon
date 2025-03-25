@@ -23,6 +23,7 @@ export interface BackgroundOption {
   id: string;
   name: string;
   url: string;
+  thumbnail?: string;
 }
 
 export interface PosterData {
