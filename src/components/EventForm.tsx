@@ -93,8 +93,10 @@ const EventForm: React.FC = () => {
 					// For example, you might want to send formData or specific fields
 				});
 
-				const imageUrl = response.data.imageUrl; // Adjust based on your API response structure
-				console.log('Generated Image URL:', imageUrl);
+				const images = response.data.imageUrl; // Adjust based on your API response structure
+				console.log('Generated Image URL:', images);
+				// Save images to local storage
+				localStorage.setItem('backgroundOptions', JSON.stringify(images));
 				// You can now use the imageUrl as needed in your component
 			} catch (error) {
 				console.error('Error generating promo:', error);

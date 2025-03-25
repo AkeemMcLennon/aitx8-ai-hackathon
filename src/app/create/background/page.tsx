@@ -9,7 +9,14 @@ import { BackButton } from '@/components/ui/back-button';
 
 export default function BackgroundSelectionPage() {
   const router = useRouter();
-  const { poster, backgroundOptions, selectBackground } = usePoster();
+  const { poster, selectBackground } = usePoster();
+  
+  //Load background options from local storage
+  const backgroundOptions = JSON.parse(localStorage.getItem('backgroundOptions') || '[]').map((url: string, i: number) => ({
+    id: i,
+    name: `Background ${i + 1}`,
+    url: url,
+  }));
 
   const handleBackgroundSelect = (backgroundId: string) => {
     selectBackground(backgroundId);
@@ -35,7 +42,7 @@ export default function BackgroundSelectionPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {backgroundOptions.map((background) => (
+            {backgroundOptions.map((background: typeof backgroundOptions[0]) => (
               <div
                 key={background.id}
                 className={`group relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:ring-4 hover:ring-primary/50 ${

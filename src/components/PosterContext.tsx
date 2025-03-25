@@ -137,7 +137,12 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
   };
 
   const selectBackground = (backgroundId: string) => {
-    const background = backgroundOptions.find((bg) => bg.id === backgroundId);
+    const backgrounds = JSON.parse(localStorage.getItem('backgroundOptions') || '[]').map((url: string, i: number) => ({
+      id: i,
+      name: `Background ${i + 1}`,
+      url: url,
+    }))
+    const background = backgrounds.find((bg: typeof backgrounds[0]) => bg.id === backgroundId);
     setPoster((prev) => ({
       ...prev,
       background,
