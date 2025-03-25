@@ -17,6 +17,24 @@ const schema = z.object({
   ),
 });
 
+// Helper function to calculate image dimensions based on aspect ratio
+function getImageDimensions(aspectRatio: string): { width: number; height: number } {
+  const [width, height] = aspectRatio.split(':').map(Number);
+  const baseSize = 1024; // Base size for the larger dimension
+  
+  if (width >= height) {
+    return {
+      width: baseSize,
+      height: Math.round((height / width) * baseSize)
+    };
+  } else {
+    return {
+      width: Math.round((width / height) * baseSize),
+      height: baseSize
+    };
+  }
+}
+
 // Helper function to generate a prompt using OpenAI
 async function generateReplicatePromptFromOpenAI(
   title: string,
@@ -34,12 +52,12 @@ async function generateReplicatePromptFromOpenAI(
       },
       {
         role: "user",
-        content: `Generate 3 AI image prompt for a promotional poster for an event with these details:
+        content: `Generate 3 AI image prompts for a promotional poster for an event with these details:
         - Title: ${title}
         - Description: ${description}
         - Location: ${location}
         - Time: ${time}
-        Ensure the description is visually rich and structured for an AI model to generate an engaging, high-quality image.
+        Ensure the description is visually rich and structured for an AI model to generate an engaging, high-quality image. Make sure there is no text in the final image.
         
         `,
       },
@@ -52,7 +70,7 @@ async function generateReplicatePromptFromOpenAI(
 
 export async function POST(req: Request) {
   try {
-    const { title, description, location, time } = await req.json();
+    const { title, description, location, time, aspectRatio = '4:5' } = await req.json();
 
     if (!title || !description || !location || !time) {
       return NextResponse.json(
@@ -89,12 +107,17 @@ export async function POST(req: Request) {
     const data: z.infer<typeof schema> = JSON.parse(unparsed);
     const prompts = data.prompts;
 
+    // Calculate image dimensions based on aspect ratio
+    const dimensions = getImageDimensions(aspectRatio);
+
     const replicateResponses = await Promise.all(
       prompts.map(async (prompt: typeof data.prompts[0]) => {
         return await replicate.run("black-forest-labs/flux-schnell", {
           input: {
             prompt: `No text unless explicitly stated. ${prompt.theme} ${prompt.visuals}`,
-            num_outputs: 3, // Generate 4 images
+            num_outputs: 3,
+            width: dimensions.width,
+            height: dimensions.height,
           },
         });
       })

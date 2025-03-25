@@ -3,6 +3,7 @@ export interface EventDetails {
   dateTime: string;
   location: string;
   description: string;
+  aspectRatio: string;
 }
 
 export interface PosterAsset {
@@ -29,6 +30,7 @@ export interface BackgroundOption {
 export interface PosterData {
   assets: PosterAsset[];
   background?: BackgroundOption;
+  aspectRatio?: string;
 }
 
 export interface AssetTransform {

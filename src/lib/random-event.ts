@@ -58,9 +58,9 @@ function getRandomFutureDate(): Date {
 
 function generateDescription(eventType: string, location: string): string {
   const descriptions = [
-    `Join us for an unforgettable ${eventType.toLowerCase()} experience at ${location}. Network with industry leaders, gain valuable insights, and be part of this transformative event.`,
-    `Experience the magic of ${eventType.toLowerCase()} like never before at ${location}. This event promises to deliver an exceptional blend of innovation and entertainment.`,
-    `Don't miss this extraordinary ${eventType.toLowerCase()} at the prestigious ${location}. Connect with fellow enthusiasts and immerse yourself in an atmosphere of creativity and excellence.`,
+    `Join us for an unforgettable ${eventType.toLowerCase()} experience at ${location}.`,
+    `Experience the magic of ${eventType.toLowerCase()} like never before at ${location}.`,
+    `Don't miss this extraordinary ${eventType.toLowerCase()} at the prestigious ${location}.`,
   ];
   
   return getRandomElement(descriptions);
@@ -78,5 +78,6 @@ export function generateRandomEvent(): EventDetails {
     location: location,
     dateTime: date.toISOString().slice(0, 16), // Format as YYYY-MM-DDTHH:mm
     description: generateDescription(eventType, location),
+    aspectRatio: '4:5', // Default to portrait
   };
 } 

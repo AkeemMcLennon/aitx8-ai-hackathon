@@ -53,6 +53,7 @@ const defaultEventDetails: EventDetails = {
   dateTime: '',
   location: '',
   description: '',
+  aspectRatio: '4:5', // Default to portrait
 };
 
 const PosterContext = createContext<PosterContextType | undefined>(undefined);
@@ -61,6 +62,7 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
   const [eventDetails, setEventDetails] = useState<EventDetails>(defaultEventDetails);
   const [poster, setPoster] = useState<PosterData>({
     assets: [],
+    aspectRatio: defaultEventDetails.aspectRatio,
   });
 
   const formatDateTime = (dateTimeStr: string) => {
@@ -127,6 +129,7 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
     // Remove existing event detail assets and add new ones
     setPoster((prev) => ({
       ...prev,
+      aspectRatio: details.aspectRatio,
       assets: [
         ...eventAssets.map((asset) => ({
           ...asset,
@@ -138,11 +141,17 @@ export function PosterContextProvider({ children }: { children: React.ReactNode 
 
   const selectBackground = (backgroundId: string) => {
     const backgrounds = JSON.parse(localStorage.getItem('backgroundOptions') || '[]').map((url: string, i: number) => ({
-      id: i,
+      id: i.toString(),
       name: `Background ${i + 1}`,
       url: url,
-    }))
+    }));
     const background = backgrounds.find((bg: typeof backgrounds[0]) => bg.id === backgroundId);
+    
+    if (!background) {
+      console.error('Background not found:', backgroundId);
+      return;
+    }
+    
     setPoster((prev) => ({
       ...prev,
       background,

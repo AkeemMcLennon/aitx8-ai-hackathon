@@ -9,6 +9,26 @@ import { usePoster } from '@/components/PosterContext';
 import { useRouter } from 'next/navigation';
 import { generateRandomEvent } from '@/lib/random-event';
 import axios from 'axios';
+import { LoadingWithFunFacts } from '@/components/ui/loading-with-fun-facts';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import Header from "@/components/layout/Header";
+import { BackButton } from '@/components/ui/back-button';
+
+const ASPECT_RATIOS = [
+	{ value: '4:5', label: 'Portrait (4:5)' },
+	{ value: '3:4', label: 'Portrait (3:4)' },
+	{ value: '2:3', label: 'Portrait (2:3)' },
+	{ value: '1:1', label: 'Square (1:1)' },
+	{ value: '5:4', label: 'Landscape (5:4)' },
+	{ value: '4:3', label: 'Landscape (4:3)' },
+	{ value: '3:2', label: 'Landscape (3:2)' },
+];
 
 const EventForm: React.FC = () => {
 	const { updateEventDetails } = usePoster();
@@ -18,10 +38,12 @@ const EventForm: React.FC = () => {
 		location: '',
 		description: '',
 		dateTime: '',
+		aspectRatio: '4:5', // Default to portrait
 	});
 	const [formErrors, setFormErrors] = useState<
 		Partial<Record<keyof EventDetails, string>>
 	>({});
+	const [isGenerating, setIsGenerating] = useState(false);
 	const { toast } = useToast();
 
 	const handleChange = (
@@ -83,22 +105,29 @@ const EventForm: React.FC = () => {
 
 			// Call the generatePromo function after validation
 			try {
+				setIsGenerating(true);
 				const response = await axios.post('/api/generate_image', {
 					title: formData.title,
 					description: formData.description,
 					location: formData.location,
 					time: formData.dateTime,
-					// Include any necessary data to send to the API
-					// For example, you might want to send formData or specific fields
+					aspectRatio: formData.aspectRatio,
 				});
 
-				const images = response.data.imageUrl; // Adjust based on your API response structure
-				console.log('Generated Image URL:', images);
-				// Save images to local storage
+				const images = response.data.imageUrl;
+				console.log('Generated Image URLs:', images);
 				localStorage.setItem('backgroundOptions', JSON.stringify(images));
-				// You can now use the imageUrl as needed in your component
+
 			} catch (error) {
 				console.error('Error generating promo:', error);
+				toast({
+					title: 'Error',
+					description: 'Failed to generate images. Please try again.',
+					variant: 'destructive',
+				});
+				return;
+			} finally {
+				setIsGenerating(false);
 			}
 
 			toast({
@@ -108,6 +137,28 @@ const EventForm: React.FC = () => {
 			router.push('/create/background');
 		}
 	};
+
+	if (isGenerating) {
+		return (
+			<div className="w-full">
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+					{[...Array(9)].map((_, i) => (
+						<div
+							key={i}
+							className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
+						>
+							<div className="absolute inset-0 flex items-center justify-center">
+								<div className="animate-spin rounded-full h-8 w-8 border-2 border-primary"></div>
+							</div>
+						</div>
+					))}
+				</div>
+				<div className="mt-8 text-center">
+					<LoadingWithFunFacts />
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<form
@@ -150,7 +201,7 @@ const EventForm: React.FC = () => {
 						name="title"
 						value={formData.title}
 						onChange={handleChange}
-						placeholder="Enter event title"
+						placeholder="Enter your event title"
 						className={formErrors.title ? 'border-red-500' : ''}
 					/>
 					{formErrors.title && (
@@ -196,16 +247,32 @@ const EventForm: React.FC = () => {
 						value={formData.description}
 						onChange={handleChange}
 						placeholder="Enter event description"
-						rows={4}
+						className="min-h-[100px]"
 					/>
+				</div>
+
+				<div>
+					<Label htmlFor="aspectRatio">Aspect Ratio</Label>
+					<Select
+						value={formData.aspectRatio}
+						onValueChange={(value) => setFormData(prev => ({ ...prev, aspectRatio: value }))}
+					>
+						<SelectTrigger>
+							<SelectValue placeholder="Select aspect ratio" />
+						</SelectTrigger>
+						<SelectContent>
+							{ASPECT_RATIOS.map((ratio) => (
+								<SelectItem key={ratio.value} value={ratio.value}>
+									{ratio.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 			</div>
 
-			<Button
-				type="submit"
-				className="w-full"
-			>
-				Continue to Background Selection
+			<Button type="submit" className="w-full">
+				Generate Poster
 			</Button>
 		</form>
 	);
