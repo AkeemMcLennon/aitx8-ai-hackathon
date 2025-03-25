@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { PosterData } from '@/types';
-import { BackgroundOption } from '@/types';
+import { PosterData, BackgroundOption } from '@/types';
+import { usePoster } from './PosterContext';
+import { motion, useDragControls, PanInfo } from 'framer-motion';
 
 interface PosterPreviewProps {
   data: PosterData;
@@ -11,94 +12,118 @@ interface PosterPreviewProps {
   className?: string;
 }
 
-const PosterPreview: React.FC<PosterPreviewProps> = ({
+export default function PosterPreview({
   data,
   background,
   editable = false,
   className = '',
-}) => {
-  const [loaded, setLoaded] = useState(false);
+}: PosterPreviewProps) {
+  const [loading, setLoading] = useState(true);
+  const { updateAsset } = usePoster();
+  const dragControls = useDragControls();
 
-  // Reset loading state when background changes
   useEffect(() => {
-    setLoaded(false);
+    if (background?.url) {
+      const img = new Image();
+      img.src = background.url;
+      img.onload = () => setLoading(false);
+    } else {
+      setLoading(false);
+    }
   }, [background?.url]);
 
-  if (!background) {
+  const handleDragEnd = (assetId: string, info: PanInfo) => {
+    updateAsset(assetId, {
+      x: info.point.x,
+      y: info.point.y,
+    });
+  };
+
+  if (loading) {
     return (
-      <div className={`poster-preview bg-gray-100 aspect-[3/4] flex items-center justify-center ${className}`}>
-        <p className="text-gray-500">No background selected</p>
+      <div className={`aspect-[3/4] bg-gray-100 rounded-lg flex items-center justify-center ${className}`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className={`poster-preview ${className} overflow-hidden relative aspect-[3/4]`}>
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse z-10">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+    <div className={`aspect-[3/4] relative rounded-lg overflow-hidden ${className}`}>
+      {background ? (
+        <img
+          src={background.url}
+          alt={background.name}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+          <p className="text-gray-400">No background selected</p>
         </div>
       )}
-      
-      <img
-        src={background.url}
-        alt={background.name}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setLoaded(true)}
-      />
-      
-      <div className="absolute inset-0 p-6 flex flex-col justify-between">
-        {/* Top title section */}
-        <div className="glass-panel p-4 backdrop-blur-md bg-white/20 text-white shadow-lg">
-          <h2 className="text-3xl font-bold mb-1 tracking-tight">{data.eventDetails.title}</h2>
-          <p className="text-lg opacity-90">{data.eventDetails.location}</p>
-        </div>
-        
-        {/* Bottom date & description section */}
-        <div className="glass-panel p-4 backdrop-blur-md bg-black/30 text-white shadow-lg">
-          <div className="mb-2">
-            <p className="text-lg font-semibold">
-              {data.eventDetails.dateTime ? 
-                new Date(data.eventDetails.dateTime).toLocaleString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }) : 'Date & Time TBD'}
-            </p>
-          </div>
-          {data.eventDetails.description && (
-            <p className="text-sm opacity-90 line-clamp-3">{data.eventDetails.description}</p>
-          )}
-        </div>
-        
-        {/* Assets will be rendered here in the editor */}
-        {data.assets.map(asset => (
-          <div 
-            key={asset.id}
-            className={`absolute ${editable ? 'cursor-move' : ''}`}
-            style={{
-              left: `${asset.x}%`,
-              top: `${asset.y}%`,
-              width: `${asset.width}px`,
-              height: `${asset.height}px`,
-              transform: `rotate(${asset.rotation}deg)`,
-              color: asset.color || 'currentColor',
-            }}
-          >
-            {asset.type === 'text' && (
-              <div className="w-full h-full">{asset.content}</div>
-            )}
-            {asset.type === 'shape' && (
-              <div className="w-full h-full bg-current rounded-full"></div>
-            )}
-          </div>
-        ))}
-      </div>
+
+      {data.assets.map((asset) => {
+        if (asset.type === 'text') {
+          return (
+            <motion.div
+              key={asset.id}
+              style={{
+                x: asset.x,
+                y: asset.y,
+                width: asset.width,
+                height: asset.height,
+                rotate: asset.rotation,
+              }}
+              drag={editable}
+              dragControls={dragControls}
+              dragMomentum={false}
+              onDragEnd={(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+                handleDragEnd(asset.id, info);
+              }}
+              className="absolute cursor-move"
+            >
+              <div
+                style={{ color: asset.color }}
+                className="text-2xl font-bold whitespace-pre-wrap break-words"
+              >
+                {asset.content}
+              </div>
+            </motion.div>
+          );
+        }
+
+        if (asset.type === 'logo' && asset.url) {
+          return (
+            <motion.div
+              key={asset.id}
+              style={{
+                x: asset.x,
+                y: asset.y,
+                width: asset.width,
+                height: asset.height,
+                rotate: asset.rotation,
+              }}
+              drag={editable}
+              dragControls={dragControls}
+              dragMomentum={false}
+              onDragEnd={(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+                handleDragEnd(asset.id, info);
+              }}
+              className="absolute cursor-move"
+            >
+              <img
+                src={asset.url}
+                alt={asset.content}
+                className="w-full h-full object-contain"
+              />
+              {editable && (
+                <div className="absolute inset-0 ring-2 ring-primary/50 rounded pointer-events-none" />
+              )}
+            </motion.div>
+          );
+        }
+
+        return null;
+      })}
     </div>
   );
-};
-
-export default PosterPreview; 
+} 

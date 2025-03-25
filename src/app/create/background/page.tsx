@@ -1,25 +1,19 @@
 'use client';
 
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
 import { usePoster } from '@/components/PosterContext';
-import PosterPreview from '@/components/PosterPreview';
+import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/ui/back-button';
 
 export default function BackgroundSelectionPage() {
   const router = useRouter();
-  const { posterData, backgroundOptions, selectBackground, getSelectedBackground } = usePoster();
-  const selectedBackground = getSelectedBackground();
+  const { poster, backgroundOptions, selectBackground } = usePoster();
 
   const handleBackgroundSelect = (backgroundId: string) => {
     selectBackground(backgroundId);
-  };
-
-  const handleContinue = () => {
-    if (selectedBackground) {
-      router.push('/create/editor');
-    }
+    router.push('/create/editor');
   };
 
   return (
@@ -35,60 +29,32 @@ export default function BackgroundSelectionPage() {
                 Choose a Background
               </h1>
               <p className="text-gray-600">
-                Select a background image for your event poster.
+                Select a background for your event poster.
               </p>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-8">
-            {/* Preview Section */}
-            <div className="order-2 lg:order-1">
-              <div className="sticky top-24">
-                <h2 className="text-lg font-medium mb-4">Preview</h2>
-                <div className="bg-white rounded-lg shadow-sm border p-4">
-                  <PosterPreview
-                    data={posterData}
-                    background={selectedBackground}
-                    className="max-w-sm mx-auto"
-                  />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {backgroundOptions.map((background) => (
+              <div
+                key={background.id}
+                className={`group relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer transition-all hover:ring-4 hover:ring-primary/50 ${
+                  poster.background?.id === background.id
+                    ? 'ring-4 ring-primary'
+                    : ''
+                }`}
+                onClick={() => handleBackgroundSelect(background.id)}
+              >
+                <img
+                  src={background.url}
+                  alt={background.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button variant="secondary">Select</Button>
                 </div>
-                
-                <Button
-                  onClick={handleContinue}
-                  className="w-full mt-6"
-                  disabled={!selectedBackground}
-                >
-                  Continue to Editor
-                </Button>
               </div>
-            </div>
-            
-            {/* Background Options Grid */}
-            <div className="order-1 lg:order-2">
-              <h2 className="text-lg font-medium mb-4">Available Backgrounds</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {backgroundOptions.map((bg) => (
-                  <button
-                    key={bg.id}
-                    onClick={() => handleBackgroundSelect(bg.id)}
-                    className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedBackground?.id === bg.id
-                        ? 'border-primary ring-2 ring-primary/20'
-                        : 'border-transparent hover:border-gray-200'
-                    }`}
-                  >
-                    <img
-                      src={bg.thumbnail}
-                      alt={bg.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                      <p className="text-white text-sm font-medium">{bg.name}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </main>
