@@ -1,103 +1,111 @@
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import Replicate from 'replicate';
+import { NextResponse } from "next/server";
+import { OpenAI } from "openai";
+import Replicate from "replicate";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
 
-interface ReplicateOutput {
-	url: string;
-}
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
+
+const schema = z.object({
+  prompts: z.array(z.string()),
+});
 
 // Helper function to generate a prompt using OpenAI
-async function generateOpenAIPrompt(
-	title: string,
-	description: string,
-	location: string,
-	time: string
+async function generateReplicatePromptFromOpenAI(
+  title: string,
+  description: string,
+  location: string,
+  time: string
 ) {
-	const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-	const response = await openai.chat.completions.create({
-		model: 'gpt-4o',
-		messages: [
-			{
-				role: 'system',
-				content:
-					'Generate a highly detailed image prompt for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image.',
-			},
-			{
-				role: 'user',
-				content: `Generate an AI image prompt for a promotional poster for an event with these details:
+  const openaiResponse = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "Generate a list highly detailed image prompts for an AI model. The prompt should describe the scene, lighting, colors, and composition to create an eye-catching promotional image. Return as a json array. Do not include code fences",
+      },
+      {
+        role: "user",
+        content: `Generate 3 AI image prompt for a promotional poster for an event with these details:
         - Title: ${title}
         - Description: ${description}
         - Location: ${location}
         - Time: ${time}
         Ensure the description is visually rich and structured for an AI model to generate an engaging, high-quality image.`,
-			},
-		],
-	});
+      },
+    ],
+    response_format: zodResponseFormat(schema, "prompts"),
+  });
 
-	return response.choices.map((choice) => choice.message?.content);
-}
-
-// Helper function to send the structured prompt to Replicate
-async function generateImagesFromReplicate(prompts: string[]) {
-	const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
-	const replicateResponses = await Promise.all(
-		prompts.map(async (prompt) => {
-			const response = await replicate.run('black-forest-labs/flux-schnell', {
-				input: {
-					prompt: prompt,
-					num_outputs: 4, // Generate 4 images
-				},
-			});
-			return response as ReplicateOutput[];
-		})
-	);
-
-	// Flatten the array of responses and extract image URLs
-	return replicateResponses.flat().map((response) => response.url);
+  return openaiResponse;
 }
 
 export async function POST(req: Request) {
-	try {
-		const { title, description, location, time } = await req.json();
+  try {
+    const { title, description, location, time } = await req.json();
 
-		if (!title || !description || !location || !time) {
-			return NextResponse.json(
-				{ error: 'Missing required event details' },
-				{ status: 400 }
-			);
-		}
+    if (!title || !description || !location || !time) {
+      return NextResponse.json(
+        { error: "Missing required event details" },
+        { status: 400 }
+      );
+    }
 
-		// Call the helper function to generate the prompts
-		const structuredPrompts = await generateOpenAIPrompt(
-			title,
-			description,
-			location,
-			time
-		);
+    // Generate AI prompt using OpenAI
+    const structuredPrompt = await generateReplicatePromptFromOpenAI(
+      title,
+      description,
+      location,
+      time
+    );
 
-		if (!structuredPrompts.length) {
-			return NextResponse.json(
-				{ error: 'Failed to generate AI prompts' },
-				{ status: 500 }
-			);
-		}
+    if (!structuredPrompt) {
+      return NextResponse.json(
+        { error: "Failed to generate AI prompt" },
+        { status: 500 }
+      );
+    }
 
-		// Filter out null values from structuredPrompts
-		const validPrompts = structuredPrompts.filter(
-			(prompt): prompt is string => prompt !== null
-		);
+    const unparsed = structuredPrompt.choices[0].message.content;
+    if (!unparsed) {
+      return NextResponse.json(
+        { error: "Failed to generate AI prompt" },
+        { status: 500 }
+      );
+    }
 
-		// Call the helper function to generate images from Replicate
-		const imageUrls = await generateImagesFromReplicate(validPrompts);
+    console.log(unparsed);
 
-		return NextResponse.json({ imageUrls });
-	} catch (error) {
-		console.error('Error:', error);
-		return NextResponse.json(
-			{ error: 'Internal Server Error' },
-			{ status: 500 }
-		);
-	}
+    const data: z.infer<typeof schema> = JSON.parse(unparsed);
+    const prompts = data.prompts;
+
+    const replicateResponses = await Promise.all(
+      prompts.map(async (prompt: string) => {
+        return await replicate.run("black-forest-labs/flux-schnell", {
+          input: {
+            prompt: prompt,
+            num_outputs: 3, // Generate 4 images
+          },
+        });
+      })
+    );
+
+    let output: string[] = [];
+
+    replicateResponses.forEach((response: object) => {
+      const responseArray = response as any[];
+      output = [...output, ...responseArray.map((item) => item.url().href)];
+    });
+    return NextResponse.json({
+      imageUrl: output,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }
-
-export const dynamic = 'force-dynamic';
