@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { OpenAI } from 'openai';
 import Replicate from 'replicate';
 
@@ -6,7 +6,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_KEY! });
 
 // Helper function to generate a prompt using OpenAI
-async function generateReplicatePromptFromOpenAI(
+async function generateOpenAIPrompt(
 	title: string,
 	description: string,
 	location: string,
@@ -32,59 +32,65 @@ async function generateReplicatePromptFromOpenAI(
 		],
 	});
 
-	return openaiResponse.choices[0].message?.content;
+	return openaiResponse.choices.map((choice) => choice.message?.content);
 }
 
-export async function POST(req: Request) {
-	try {
-		const { title, description, location, time } = await req.json();
-
-		if (!title || !description || !location || !time) {
-			return NextResponse.json(
-				{ error: 'Missing required event details' },
-				{ status: 400 }
-			);
-		}
-
-		// Generate AI prompt using OpenAI
-		const structuredPrompt = await generateReplicatePromptFromOpenAI(
-			title,
-			description,
-			location,
-			time
-		);
-		console.log('response from openAI', structuredPrompt);
-		if (!structuredPrompt) {
-			return NextResponse.json(
-				{ error: 'Failed to generate AI prompt' },
-				{ status: 500 }
-			);
-		}
-
-		// return NextResponse.json({
-		// 	structuredPrompt: structuredPrompt,
-		// });
-
-		// Send the structured prompt to Replicate
-		const replicateResponse = (await replicate.run(
-			'black-forest-labs/flux-schnell',
-			{
+// Helper function to send the structured prompt to Replicate
+async function generateImagesFromReplicate(prompts: string[]) {
+	const replicateResponses = await Promise.all(
+		prompts.map(async (prompt) => {
+			return await replicate.run('black-forest-labs/flux-schnell', {
 				input: {
-					prompt: structuredPrompt,
+					prompt: prompt,
 					num_outputs: 4, // Generate 4 images
 				},
-			}
-		)) as any[];
+			});
+		})
+	);
 
-		const imageUrl = replicateResponse.map((item) => item.url().href);
-		return NextResponse.json({
-			imageUrl: imageUrl,
-		});
-	} catch (error) {
-		console.error('Error:', error);
-		return NextResponse.json(
-			{ error: 'Internal Server Error' },
-			{ status: 500 }
-		);
+	// Flatten the array of responses and extract image URLs
+	return replicateResponses.flat().map((response) => response.url().href);
+}
+
+export default async function handler(
+	req: NextApiRequest,
+	res: NextApiResponse
+) {
+	if (req.method === 'POST') {
+		const { title, description, location, time } = req.body;
+
+		if (!title || !description || !location || !time) {
+			return res.status(400).json({ error: 'Missing required event details' });
+		}
+
+		try {
+			// Call the helper function to generate the prompts
+			const structuredPrompts = await generateOpenAIPrompt(
+				title,
+				description,
+				location,
+				time
+			);
+
+			if (!structuredPrompts.length) {
+				return res.status(500).json({ error: 'Failed to generate AI prompts' });
+			}
+
+			// Filter out null values from structuredPrompts
+			const validPrompts = structuredPrompts.filter(
+				(prompt): prompt is string => prompt !== null
+			);
+
+			// Call the helper function to generate images from Replicate
+			const imageUrls = await generateImagesFromReplicate(validPrompts);
+
+			return res.status(200).json({ imageUrls });
+		} catch (error) {
+			console.error('Error:', error);
+			return res.status(500).json({ error: 'Internal Server Error' });
+		}
+	} else {
+		res.setHeader('Allow', ['POST']);
+		return res.status(405).end(`Method ${req.method} Not Allowed`);
 	}
 }
