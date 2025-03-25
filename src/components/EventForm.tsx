@@ -48,8 +48,7 @@ const EventForm: React.FC = () => {
 		setFormErrors({});
 		toast({
 			title: 'Random event generated',
-			description: 'Feel free to edit the details or generate another one!',
-			duration: 3000,
+			description: 'Feel free to edit the details or generate another one!'
 		});
 	};
 
@@ -104,8 +103,7 @@ const EventForm: React.FC = () => {
 
 			toast({
 				title: 'Event details saved',
-				description: 'Now choose a background for your poster',
-				duration: 3000,
+				description: 'Now choose a background for your poster'
 			});
 			router.push('/create/background');
 		}

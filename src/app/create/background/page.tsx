@@ -7,16 +7,25 @@ import Header from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/ui/back-button';
 
+interface Background {
+  id: string;
+  name: string;
+  url: string;
+}
+
 export default function BackgroundSelectionPage() {
   const router = useRouter();
   const { poster, selectBackground } = usePoster();
+  const [backgroundOptions, setBackgroundOptions] = React.useState<Background[]>([]);
   
-  //Load background options from local storage
-  const backgroundOptions = JSON.parse(localStorage.getItem('backgroundOptions') || '[]').map((url: string, i: number) => ({
-    id: i,
-    name: `Background ${i + 1}`,
-    url: url,
-  }));
+  React.useEffect(() => {
+    const storedOptions = JSON.parse(localStorage.getItem('backgroundOptions') || '[]');
+    setBackgroundOptions(storedOptions.map((url: string, i: number) => ({
+      id: i.toString(),
+      name: `Background ${i + 1}`,
+      url: url,
+    })));
+  }, []);
 
   const handleBackgroundSelect = (backgroundId: string) => {
     selectBackground(backgroundId);
